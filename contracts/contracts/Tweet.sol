@@ -4,12 +4,14 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 import "./IDC.sol";
 /**
     @title Tweet Service (.country)
     @notice The Tweet service allows users to display tweets of their choice in the .country domain they leased. It charges a flatfee for activation of the service
  */
-contract Tweet is Pausable, Ownable {
+contract Tweet is Ownable, Pausable, ReentrancyGuard {
     uint256 public baseRentalPrice;
     address public revenueAccount;
     IDC public dc;
@@ -23,6 +25,7 @@ contract Tweet is Pausable, Ownable {
 
     mapping(bytes32 => bool) public activated;
     mapping(bytes32 => string[]) public urls; // additional urls per record
+    mapping(bytes32 => mapping(string => uint256)) public urlUpdateAt;
 
     event URLUpdated(string indexed name, address indexed renter, string oldUrl, string newUrl);
     event URLAdded(string indexed name, address indexed renter, string url);
@@ -30,6 +33,19 @@ contract Tweet is Pausable, Ownable {
     event URLCleared(string indexed name, address indexed renter);
     event RevenueAccountChanged(address from, address to);
     event TweetActivated(string indexed name);
+
+    modifier onlyRegistered(string memory name) {
+        require(dc.ownerOf(name) != address(0), "Tweet: name not registered");
+        _;
+    }
+
+    modifier activeOwnerOnly(string calldata name){
+        require(dc.ownerOf(name) == msg.sender, "Tweet: not name owner");
+        uint256 tokenId = uint256(keccak256(bytes(name)));
+        require(activated[bytes32(tokenId)], "Tweet: not activated");
+        require(dc.nameExpires(name) > block.timestamp, "Tweet: name expired");
+        _;
+    }
 
     constructor(InitConfiguration memory _initConfig) {
         setBaseRentalPrice(_initConfig.baseRentalPrice);
@@ -48,6 +64,9 @@ contract Tweet is Pausable, Ownable {
         require(!initialized, "Tweet: already initialized");
         for (uint256 i = 0; i < _urls.length; i++) {
             urls[key].push(_urls[i]);
+
+            uint256 domainRegistrationAt = dc.nameExpires(_name) - dc.duration();
+            urlUpdateAt[key][_urls[i]] = domainRegistrationAt + 1;
         }
     }
 
@@ -77,16 +96,13 @@ contract Tweet is Pausable, Ownable {
         _unpause();
     }
 
-    modifier onlyRegistered(string memory name) {
-        require(dc.ownerOf(name) != address(0), "Tweet: name not registered");
-        _;
-    }
-
     function activate(string calldata name) public payable whenNotPaused onlyRegistered(name) {
         require(baseRentalPrice <= msg.value, "Tweet: insufficient payment");
+
         uint256 tokenId = uint256(keccak256(bytes(name)));
         require(!activated[bytes32(tokenId)], "Tweet: already activated");
         activated[bytes32(tokenId)] = true;
+
         emit TweetActivated(name);
 
         // Return any excess funds
@@ -97,34 +113,46 @@ contract Tweet is Pausable, Ownable {
         }
     }
 
-    modifier activeOwnerOnly(string calldata name){
-        require(dc.ownerOf(name) == msg.sender, "Tweet: not name owner");
-        uint256 tokenId = uint256(keccak256(bytes(name)));
-        require(activated[bytes32(tokenId)], "Tweet: not activated");
-        require(dc.nameExpires(name) > block.timestamp, "Tweet: name expired");
-        _;
-    }
     function addURL(string calldata name, string calldata url) public whenNotPaused activeOwnerOnly(name) {
         bytes32 key = keccak256(bytes(name));
         require(urls[key].length < 64, "Tweet: too many urls");
+
         urls[key].push(url);
+
         emit URLAdded(name, msg.sender, url);
     }
 
     function numUrls(string calldata name) public view returns (uint256) {
         bytes32 key = keccak256(bytes(name));
-        return urls[key].length;
+        uint256 urlCount;
+
+        for (uint256 i = 0; i < key.length;) {
+            string url = urls[key][i];
+            uint256 domainRegistrationAt = dc.nameExpires(_name) - dc.duration();
+
+            if (domainRegistrationAt < urlUpdateAt[key][url]) {
+                ++urlCount;
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+        return urlCount;
     }
 
     function removeUrl(string calldata name, uint256 pos) public whenNotPaused activeOwnerOnly(name) {
         bytes32 key = keccak256(bytes(name));
+
         require(pos < urls[key].length, "DC: invalid position");
+
         string memory url = urls[key][pos];
         // have to keep the order
         for (uint256 i = pos; i < urls[key].length - 1; i++) {
             urls[key][pos] = urls[key][pos + 1];
         }
         urls[key].pop();
+
         emit URLRemoved(name, msg.sender, url, pos);
     }
 
