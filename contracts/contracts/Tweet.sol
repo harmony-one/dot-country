@@ -78,16 +78,16 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
     }
 
     // admin functions
-    function setBaseRentalPrice(uint256 _baseRentalPrice) public onlyOwner {
+    function setBaseRentalPrice(uint256 _baseRentalPrice) external onlyOwner {
         baseRentalPrice = _baseRentalPrice;
     }
 
-    function setRevenueAccount(address _revenueAccount) public onlyOwner {
+    function setRevenueAccount(address _revenueAccount) external onlyOwner {
         emit RevenueAccountChanged(revenueAccount, _revenueAccount);
         revenueAccount = _revenueAccount;
     }
 
-    function setDC(address _dc) public onlyOwner {
+    function setDC(address _dc) external onlyOwner {
         dc = IDC(_dc);
     }
 
@@ -99,7 +99,7 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    function activate(string calldata name) public payable whenNotPaused onlyRegistered(name) {
+    function activate(string calldata name) external payable whenNotPaused onlyRegistered(name) {
         require(baseRentalPrice <= msg.value, "Tweet: insufficient payment");
 
         uint256 tokenId = uint256(keccak256(bytes(name)));
@@ -116,7 +116,7 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         }
     }
 
-    function addURL(string calldata name, string calldata url) public whenNotPaused activeOwnerOnly(name) {
+    function addURL(string calldata name, string calldata url) external whenNotPaused activeOwnerOnly(name) {
         bytes32 key = keccak256(bytes(name));
         require(urls[key].length < 64, "Tweet: too many urls");
 
@@ -125,26 +125,31 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         emit URLAdded(name, msg.sender, url);
     }
 
-    function numUrls(string calldata name) public view returns (uint256) {
+    function numUrls(string calldata name) external view returns (uint256) {
         bytes32 key = keccak256(bytes(name));
-        uint256 urlCount;
-
-        for (uint256 i = 0; i < key.length;) {
-            string memory url = urls[key][i];
-            uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
-
-            if (domainRegistrationAt < urlUpdateAt[key][url]) {
-                ++urlCount;
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-        return urlCount;
+        return urls[key].length;
     }
 
-    function removeUrl(string calldata name, uint256 pos) public whenNotPaused activeOwnerOnly(name) {
+    // function numTotalUrls(string calldata name) public view returns (uint256) {
+    //     bytes32 key = keccak256(bytes(name));
+    //     uint256 urlCount;
+
+    //     for (uint256 i = 0; i < key.length;) {
+    //         string memory url = urls[key][i];
+    //         uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
+
+    //         if (domainRegistrationAt < urlUpdateAt[key][url]) {
+    //             ++urlCount;
+    //         }
+
+    //         unchecked {
+    //             ++i;
+    //         }
+    //     }
+    //     return urlCount;
+    // }
+
+    function removeUrl(string calldata name, uint256 pos) external whenNotPaused activeOwnerOnly(name) {
         bytes32 key = keccak256(bytes(name));
 
         require(pos < urls[key].length, "DC: invalid position");
@@ -159,19 +164,23 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         emit URLRemoved(name, msg.sender, url, pos);
     }
 
-    function clearUrls(string calldata name) public whenNotPaused activeOwnerOnly(name) {
+    function clearUrls(string calldata name) external whenNotPaused activeOwnerOnly(name) {
         bytes32 key = keccak256(bytes(name));
         delete urls[key];
         emit URLCleared(name, msg.sender);
     }
 
-    function getAllUrls(string calldata name) public view returns (string[] memory){
+    function getAllUrls(string calldata name) external view returns (string[] memory) {
         bytes32 key = keccak256(bytes(name));
         string[] memory ret = new string[](urls[key].length);
         for (uint256 i = 0; i < urls[key].length; i++) {
             ret[i] = urls[key][i];
         }
         return ret;
+    }
+
+    function getValidUrls(string calldata name) external view returns (string[] memory) {
+
     }
 
     function withdraw() external {
