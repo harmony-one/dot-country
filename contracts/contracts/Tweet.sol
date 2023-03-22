@@ -53,15 +53,18 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         setDC(_initConfig.dc);
     }
 
-    function initializeActivation(bytes32[] calldata keys) external onlyOwner {
+    function initializeActivation(string[] calldata _names) external onlyOwner {
         require(!initialized, "Tweet: already initialized");
-        for (uint256 i = 0; i < keys.length; i++) {
-            activated[keys[i]] = true;
+        for (uint256 i = 0; i < _names.length; i++) {
+            bytes32 key = keccak256(bytes(_names[i]));
+            activated[key] = true;
         }
     }
 
-    function initializeUrls(bytes32 key, string[] memory _urls) external onlyOwner {
+    function initializeUrls(string calldata _name, string[] memory _urls) external onlyOwner {
         require(!initialized, "Tweet: already initialized");
+
+        bytes32 key = keccak256(bytes(_name));
         for (uint256 i = 0; i < _urls.length; i++) {
             urls[key].push(_urls[i]);
 
@@ -127,8 +130,8 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         uint256 urlCount;
 
         for (uint256 i = 0; i < key.length;) {
-            string url = urls[key][i];
-            uint256 domainRegistrationAt = dc.nameExpires(_name) - dc.duration();
+            string memory url = urls[key][i];
+            uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
 
             if (domainRegistrationAt < urlUpdateAt[key][url]) {
                 ++urlCount;
