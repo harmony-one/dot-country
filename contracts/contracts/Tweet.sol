@@ -23,7 +23,8 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         address dc;
     }
 
-    mapping(bytes32 => bool) public activated;
+    // mapping(bytes32 => bool) public activated;
+    mapping(bytes32 => uint256) public activatedAt;
     mapping(bytes32 => string[]) public urls; // additional urls per record
     mapping(bytes32 => mapping(string => uint256)) public urlUpdateAt;
 
@@ -42,7 +43,8 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
     modifier activeOwnerOnly(string calldata name){
         require(dc.ownerOf(name) == msg.sender, "Tweet: not name owner");
         uint256 tokenId = uint256(keccak256(bytes(name)));
-        require(activated[bytes32(tokenId)], "Tweet: not activated");
+        // require(activated[bytes32(tokenId)], "Tweet: not activated");
+        require(_getDomainRegistrationAt(name) < activatedAt[bytes32(tokenId)], "Tweet: not activated");
         require(dc.nameExpires(name) > block.timestamp, "Tweet: name expired");
         _;
     }
@@ -57,7 +59,8 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         require(!initialized, "Tweet: already initialized");
         for (uint256 i = 0; i < _names.length; i++) {
             bytes32 key = keccak256(bytes(_names[i]));
-            activated[key] = true;
+            // activated[key] = true;
+            activatedAt[key] = block.timestamp;
         }
     }
 
@@ -67,9 +70,7 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         bytes32 key = keccak256(bytes(_name));
         for (uint256 i = 0; i < _urls.length; i++) {
             urls[key].push(_urls[i]);
-
-            uint256 domainRegistrationAt = dc.nameExpires(_name) - dc.duration();
-            urlUpdateAt[key][_urls[i]] = domainRegistrationAt + 1;
+            urlUpdateAt[key][_urls[i]] = block.timestamp;
         }
     }
 
@@ -103,8 +104,10 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         require(baseRentalPrice <= msg.value, "Tweet: insufficient payment");
 
         uint256 tokenId = uint256(keccak256(bytes(name)));
-        require(!activated[bytes32(tokenId)], "Tweet: already activated");
-        activated[bytes32(tokenId)] = true;
+        // require(!activated[bytes32(tokenId)], "Tweet: already activated");
+        // activated[bytes32(tokenId)] = true;
+        require(activatedAt[bytes32(tokenId)] < _getDomainRegistrationAt(name), "Tweet: already activated");
+        activatedAt[bytes32(tokenId)] = block.timestamp;
 
         emit TweetActivated(name);
 
@@ -166,9 +169,8 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         uint256 validUrlCount;
         for (uint256 i = 0; i < urls[key].length; i++) {
             string memory url = urls[key][i];
-            uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
 
-            if (domainRegistrationAt < urlUpdateAt[key][url]) {
+            if (_getDomainRegistrationAt(name) < urlUpdateAt[key][url]) {
                 ++validUrlCount;
             }
         }
@@ -183,9 +185,8 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         bytes32 key = keccak256(bytes(name));
         for (uint256 i = 0; i < urls[key].length; i++) {
             string memory url = urls[key][i];
-            uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
 
-            if (domainRegistrationAt < urlUpdateAt[key][url]) {
+            if (_getDomainRegistrationAt(name) < urlUpdateAt[key][url]) {
                 validUrls[i] = url;
             }
         }
@@ -197,5 +198,11 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         require(msg.sender == owner() || msg.sender == revenueAccount, "DC: must be owner or revenue account");
         (bool success,) = revenueAccount.call{value : address(this).balance}("");
         require(success, "DC: failed to withdraw");
+    }
+
+    function _getDomainRegistrationAt(string calldata name) internal view returns (uint256) {
+        uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
+
+        return domainRegistrationAt;
     }
 }
