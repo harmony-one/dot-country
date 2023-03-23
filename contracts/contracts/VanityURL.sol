@@ -203,9 +203,9 @@ contract VanityURL is Ownable, Pausable, ReentrancyGuard {
     /// @notice Withdraw funds
     /// @dev Only owner of the revenue account can withdraw funds
     function withdraw() external {
-        require(msg.sender == owner() || msg.sender == revenueAccount, "D1DC: must be owner or revenue account");
+        require(msg.sender == owner() || msg.sender == revenueAccount, "VanityURL: must be owner or revenue account");
         (bool success, ) = revenueAccount.call{value: address(this).balance}("");
-        require(success, "D1DC: failed to withdraw");
+        require(success, "VanityURL: failed to withdraw");
     }
 
     /// @notice Pause the contract

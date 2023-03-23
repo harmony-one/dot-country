@@ -305,7 +305,7 @@ describe('VanityURL', () => {
     });
 
     it("Should revert if the caller is not the owner or revenue account", async () => {
-      await expect(vanityURL.connect(alice).withdraw()).to.be.revertedWith("D1DC: must be owner or revenue account");
+      await expect(vanityURL.connect(alice).withdraw()).to.be.revertedWith("VanityURL: must be owner or revenue account");
     });
   });
 });
