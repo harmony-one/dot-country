@@ -78,16 +78,16 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
     }
 
     // admin functions
-    function setBaseRentalPrice(uint256 _baseRentalPrice) external onlyOwner {
+    function setBaseRentalPrice(uint256 _baseRentalPrice) public onlyOwner {
         baseRentalPrice = _baseRentalPrice;
     }
 
-    function setRevenueAccount(address _revenueAccount) external onlyOwner {
+    function setRevenueAccount(address _revenueAccount) public onlyOwner {
         emit RevenueAccountChanged(revenueAccount, _revenueAccount);
         revenueAccount = _revenueAccount;
     }
 
-    function setDC(address _dc) external onlyOwner {
+    function setDC(address _dc) public onlyOwner {
         dc = IDC(_dc);
     }
 
@@ -130,25 +130,6 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         return urls[key].length;
     }
 
-    // function numTotalUrls(string calldata name) public view returns (uint256) {
-    //     bytes32 key = keccak256(bytes(name));
-    //     uint256 urlCount;
-
-    //     for (uint256 i = 0; i < key.length;) {
-    //         string memory url = urls[key][i];
-    //         uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
-
-    //         if (domainRegistrationAt < urlUpdateAt[key][url]) {
-    //             ++urlCount;
-    //         }
-
-    //         unchecked {
-    //             ++i;
-    //         }
-    //     }
-    //     return urlCount;
-    // }
-
     function removeUrl(string calldata name, uint256 pos) external whenNotPaused activeOwnerOnly(name) {
         bytes32 key = keccak256(bytes(name));
 
@@ -179,8 +160,37 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         return ret;
     }
 
-    function getValidUrls(string calldata name) external view returns (string[] memory) {
+    function numValidUrls(string calldata name) public view returns (uint256) {
+        bytes32 key = keccak256(bytes(name));
 
+        uint256 validUrlCount;
+        for (uint256 i = 0; i < urls[key].length; i++) {
+            string memory url = urls[key][i];
+            uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
+
+            if (domainRegistrationAt < urlUpdateAt[key][url]) {
+                ++validUrlCount;
+            }
+        }
+
+        return validUrlCount;
+    }
+
+    function getValidUrls(string calldata name) external view returns (string[] memory) {
+        uint256 validUrlCount = numValidUrls(name);
+        string[] memory validUrls = new string[](validUrlCount);
+
+        bytes32 key = keccak256(bytes(name));
+        for (uint256 i = 0; i < urls[key].length; i++) {
+            string memory url = urls[key][i];
+            uint256 domainRegistrationAt = dc.nameExpires(name) - dc.duration();
+
+            if (domainRegistrationAt < urlUpdateAt[key][url]) {
+                validUrls[i] = url;
+            }
+        }
+
+        return validUrls;
     }
 
     function withdraw() external {
