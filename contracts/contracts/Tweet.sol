@@ -100,7 +100,7 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    function activate(string calldata name) external payable whenNotPaused onlyRegistered(name) {
+    function activate(string calldata name) external payable nonReentrant whenNotPaused onlyRegistered(name) {
         require(baseRentalPrice <= msg.value, "Tweet: insufficient payment");
 
         uint256 tokenId = uint256(keccak256(bytes(name)));
@@ -195,7 +195,7 @@ contract Tweet is Ownable, Pausable, ReentrancyGuard {
     }
 
     function withdraw() external {
-        require(msg.sender == owner() || msg.sender == revenueAccount, "DC: must be owner or revenue account");
+        require(msg.sender == owner() || msg.sender == revenueAccount, "Tweet: must be owner or revenue account");
         (bool success,) = revenueAccount.call{value : address(this).balance}("");
         require(success, "DC: failed to withdraw");
     }
