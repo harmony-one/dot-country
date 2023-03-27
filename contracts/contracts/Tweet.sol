@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./IDC.sol";
+
+import "hardhat/console.sol";
+
 /**
     @title Tweet Service (.country)
     @notice The Tweet service allows users to display tweets of their choice in the .country domain they leased. It charges a flatfee for activation of the service

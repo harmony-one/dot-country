@@ -8,7 +8,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signe
 import { MockDC, Tweet } from "../typechain-types"
 
 const dotName = 'test.1.country'
-const activatePrice = ethers.utils.parseEther("1");
+const baseRentalPrice = ethers.utils.parseEther("1");
 
 const name1 = "name1";
 const name2 = "name2";
@@ -29,6 +29,10 @@ const urls = [
   url2,
   url3,
 ]
+
+const stringToBytes32 = (stringToConvert: string) => {
+  return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(stringToConvert));
+}
 
 describe('Tweet', () => {
   let accounts: SignerWithAddress;
@@ -51,7 +55,7 @@ describe('Tweet', () => {
     // Deploy Tweet contract
     const Tweet = await ethers.getContractFactory("Tweet");
     tweet = (await Tweet.deploy({
-      baseRentalPrice: activatePrice,
+      baseRentalPrice: baseRentalPrice,
       revenueAccount: revenueAccount.address,
       dc: mockDC.address
     })) as Tweet;
@@ -59,12 +63,11 @@ describe('Tweet', () => {
 
   describe("initializeActivation", () => {
     it("Should be able to initialize the activation", async () => {
-      expect(await tweet.activatedAt(name1)).to.equal(0);
+      expect(await tweet.activatedAt(stringToBytes32(name1))).to.equal(0);
 
-      // console.log(names)
       await tweet.initializeActivation(names);
 
-      expect(await tweet.activatedAt(name1)).to.gt(0);
+      expect(await tweet.activatedAt(stringToBytes32(name1))).to.gt(0);
     });
 
     it("Should revert if the domain was already activated", async () => {
@@ -76,7 +79,37 @@ describe('Tweet', () => {
 
   describe("initializeUrls", () => {
     it("Should be able to initialize the urls", async () => {
+      expect(await tweet.numUrls(name1)).to.equal(0);
+      for (let i = 0; i < urls.length; i++) {
+        expect(await tweet.urlUpdateAt(stringToBytes32(name1), urls[i])).to.equal(0);
+      }
+
       await tweet.initializeUrls(name1, urls);
+
+      expect(await tweet.numUrls(name1)).to.equal(urls.length);
+      for (let i = 0; i < urls.length; i++) {
+        expect(await tweet.urlUpdateAt(stringToBytes32(name1), urls[i])).gt(0);
+      }
+    });
+
+    it("Should revert if the initialization is finalized", async () => {
+      await tweet.finishInitialization();
+
+      await expect(tweet.initializeUrls(name1, urls)).to.revertedWith("Tweet: already initialized");
+    });
+  });
+
+  describe("setBaseRentalPrice", () => {
+    it("Should be able set the base rental price", async () => {
+      expect(await tweet.baseRentalPrice()).to.equal(baseRentalPrice);
+      
+      await tweet.setBaseRentalPrice(baseRentalPrice.add(1));
+
+      expect(await tweet.baseRentalPrice()).to.equal(baseRentalPrice.add(1));
+    });
+
+    it("Should revert if the caller is not owner", async () => {
+      await expect(tweet.connect(alice).setBaseRentalPrice(baseRentalPrice)).to.be.reverted;
     });
   });
 
@@ -94,10 +127,24 @@ describe('Tweet', () => {
     });
   });
 
+  describe("setDC", () => {
+    it("Should be able set the DC contract address", async () => {
+      expect(await tweet.dc()).to.equal(mockDC.address);
+      
+      await tweet.setDC(alice.address);
+
+      expect(await tweet.dc()).to.equal(alice.address);
+    });
+
+    it("Should revert if the caller is not owner", async () => {
+      await expect(tweet.connect(alice).setDC(alice.address)).to.be.reverted;
+    });
+  });
+
   describe("withdraw", () => {
     beforeEach(async () => {
       await mockDC.connect(alice).register(dotName);
-      await tweet.activate(dotName, { value: activatePrice });
+      await tweet.activate(dotName, { value: baseRentalPrice });
     });
 
     it("should be able to withdraw ONE tokens", async () => {
