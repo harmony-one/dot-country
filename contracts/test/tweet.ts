@@ -10,6 +10,26 @@ import { MockDC, Tweet } from "../typechain-types"
 const dotName = 'test.1.country'
 const activatePrice = ethers.utils.parseEther("1");
 
+const name1 = "name1";
+const name2 = "name2";
+const name3 = "name3";
+
+const names = [
+  name1,
+  name2,
+  name3,
+];
+
+const url1 = "url1";
+const url2 = "url2";
+const url3 = "url3";
+
+const urls = [
+  url1,
+  url2,
+  url3,
+]
+
 describe('Tweet', () => {
   let accounts: SignerWithAddress;
   let deployer: SignerWithAddress;
@@ -35,6 +55,29 @@ describe('Tweet', () => {
       revenueAccount: revenueAccount.address,
       dc: mockDC.address
     })) as Tweet;
+  });
+
+  describe("initializeActivation", () => {
+    it("Should be able to initialize the activation", async () => {
+      expect(await tweet.activatedAt(name1)).to.equal(0);
+
+      // console.log(names)
+      await tweet.initializeActivation(names);
+
+      expect(await tweet.activatedAt(name1)).to.gt(0);
+    });
+
+    it("Should revert if the domain was already activated", async () => {
+      await tweet.finishInitialization();
+
+      await expect(tweet.initializeActivation(names)).to.be.revertedWith("Tweet: already initialized");
+    });
+  });
+
+  describe("initializeUrls", () => {
+    it("Should be able to initialize the urls", async () => {
+      await tweet.initializeUrls(name1, urls);
+    });
   });
 
   describe("setRevenueAccount", () => {
