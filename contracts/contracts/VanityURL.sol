@@ -4,11 +4,10 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./IDC.sol";
 
-contract VanityURL is Ownable, Pausable, ReentrancyGuard {
+contract VanityURL is Ownable, Pausable {
     /// @dev DC contract
     address public dc;
 
