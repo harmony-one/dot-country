@@ -150,6 +150,7 @@ contract VanityURL is Ownable, Pausable, ReentrancyGuard {
     ) external whenNotPaused onlyDCOwner(_name) whenDomainNotExpired(_name) {
         bytes32 tokenId = keccak256(bytes(_name));
 
+        require(bytes(_aliasName).length <= 1024, "VanityURL: alias too long");
         require(bytes(_url).length <= 1024, "VanityURL: url too long");
         require(checkURLValidity(_name, _aliasName), "VanityURL: invalid URL");
 
