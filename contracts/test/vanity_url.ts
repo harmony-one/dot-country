@@ -70,7 +70,7 @@ describe('VanityURL', () => {
   });
 
   describe("setNewURL", () => {
-    const tokenId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dotName));
+    const tokenId = ethers.utils.id(dotName);
     const aliasName = "aliasName";
     const url = "url";
     const price = ethers.utils.parseEther("2");
@@ -134,7 +134,7 @@ describe('VanityURL', () => {
   });
 
   describe("deleteURL", () => {
-    const tokenId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dotName));
+    const tokenId = ethers.utils.id(dotName);
     const aliasName = "aliasName";
     const url = "url";
     const price = ethers.utils.parseEther("2");
@@ -178,7 +178,7 @@ describe('VanityURL', () => {
   });
 
   describe("updateURL", () => {
-    const tokenId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dotName));
+    const tokenId = ethers.utils.id(dotName);
     const aliasName = "aliasName";
     const url = "url";
     const price = ethers.utils.parseEther("2");
@@ -236,7 +236,7 @@ describe('VanityURL', () => {
   });
 
   describe("getURL", () => {
-    const tokenId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dotName));
+    const tokenId = ethers.utils.id(dotName);
     const aliasName = "aliasName";
     const url = "url";
     const price = ethers.utils.parseEther("2");
@@ -260,7 +260,7 @@ describe('VanityURL', () => {
   });
 
   describe("getPrice", () => {
-    const tokenId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dotName));
+    const tokenId = ethers.utils.id(dotName);
     const aliasName = "aliasName";
     const url = "url";
     const price = ethers.utils.parseEther("2");
@@ -284,7 +284,7 @@ describe('VanityURL', () => {
   });
 
   describe("withdraw", () => {
-    const tokenId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dotName));
+    const tokenId = ethers.utils.id(dotName);
     const aliasName = "aliasName";
     const url = "url";
     const price = ethers.utils.parseEther("2");
