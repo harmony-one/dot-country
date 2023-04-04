@@ -24,6 +24,7 @@ contract DC is Pausable, Ownable {
     uint32 public fuses;
     uint64 public wrapperExpiry;
     uint256 public duration;
+    mapping(string => uint256) public registerAt;
 
     struct InitConfiguration {
         // 32-bytes
@@ -145,6 +146,10 @@ contract DC is Pausable, Ownable {
         require(price <= msg.value, "DC: insufficient payment");
         require(available(name), "DC: name unavailable");
         _register(name, owner, secret);
+
+        if (ownerOf(name) != owner) {
+            registerAt[name] = block.timestamp;
+        }
 
         // Return any excess funds
         uint256 excess = msg.value - price;
