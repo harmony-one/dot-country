@@ -93,7 +93,7 @@ contract VanityURL is Ownable, Pausable, ReentrancyGuard {
         string calldata _aliasName,
         string calldata _url,
         uint256 _price
-    ) external payable nonReentrant whenNotPaused onlyDCOwner(_name) whenDomainNotExpired(_name) {
+    ) external payable whenNotPaused onlyDCOwner(_name) whenDomainNotExpired(_name) {
         require(bytes(_aliasName).length <= 1024, "VanityURL: alias too long");
         require(bytes(_url).length <= 1024, "VanityURL: url too long");
 
