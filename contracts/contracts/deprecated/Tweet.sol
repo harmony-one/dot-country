@@ -8,6 +8,7 @@ import "./IDC.sol";
 /**
     @title Tweet Service (.country)
     @notice The Tweet service allows users to display tweets of their choice in the .country domain they leased. It charges a flatfee for activation of the service
+    @dev Deprecated by the Post contract
  */
 contract Tweet is Pausable, Ownable {
     uint256 public baseRentalPrice;
